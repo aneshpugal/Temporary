@@ -132,7 +132,7 @@
                     ],
                     "properties": {
                         "RepoUrl": "https://github.com/aneshpugal/Temporary.git",
-                        "branch": "master",
+                        "branch": "main",
                         "publishRunbook": true,
                         "IsManualIntegration": true
                     }
