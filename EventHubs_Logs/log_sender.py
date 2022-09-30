@@ -173,7 +173,19 @@ def main(eventMessages: func.EventHubEvent):
                 s247_datetime_format_string = logtype_config['dateFormat']
             else:
                 return
+            masking_config = logtype_config['maskingConfig'] if 'maskingConfig' in logtype_config else None
+            hashing_config = logtype_config['hashingConfig'] if 'hashingConfig' in logtype_config else None
+            derived_eval = logtype_config['derivedConfig'] if 'derivedConfig' in logtype_config else None
 
+            if derived_eval:
+                try:
+                    derived_fields = {}
+                    for key in derived_eval:
+                        derived_fields[key] = []
+                        for values in derived_eval[key]:
+                            derived_fields[key].append(re.compile(values.replace('\\\\', '\\').replace('?<', '?P<')))
+                except Exception as e:
+                    print("Error in dfields")
             if 'jsonPath' in logtype_config:
                 parsed_lines, log_size = json_log_parser(log_events)
 
