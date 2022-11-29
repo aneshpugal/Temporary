@@ -22,6 +22,14 @@ def is_filters_matched(formatted_line):
                 return False
     return True
 
+def log_line_filter()
+    if masking_config:
+        apply_masking(formatted_line)
+    if hashing_config:
+        apply_hashing(formatted_line)
+    if derived_eval:
+        derivedFields(formatted_line)
+
 def get_json_value(obj, key, datatype=None):
     if key in obj or key.lower() in obj:
         if datatype and datatype == 'json-object':
@@ -60,12 +68,7 @@ def json_log_parser(lines_read):
             if 'resourceId' in event_obj:
                 formatted_line['s247agentuid'] = event_obj['resourceId'].split('/')[4]
                 event_obj['resourceId'] = event_obj['resourceId'].lower()
-            if masking_config:
-                apply_masking(formatted_line, log_size)
-            if hashing_config:
-                apply_hashing(formatted_line, log_size)
-            if derived_eval:
-                derivedFields(formatted_line, log_size)
+            log_line_filter(formatted_line)
             parsed_lines.append(formatted_line)
         except Exception as e:
             print('unable to parse event message : ',event_obj)
@@ -86,11 +89,11 @@ def send_logs_to_s247(gzipped_parsed_lines, log_size):
     else:
         logging.info('%s :Problem in uploading to site24x7 status %s, Reason : %s', dict_responseHeaders['x-uploadid'], s247_response.status, s247_response.read())
 
-def apply_masking(formatted_line, logSize):
+def apply_masking(formatted_line):
     global log_size
     for config in masking_config:
         adjust_length = 0
-        mask_regex = re.compile(masking_config[config]['regex'])
+        mask_regex = masking_config[config]['regex']
         field_value = str(formatted_line[config])
         for matcher in re.finditer(mask_regex, field_value):
             if matcher:
@@ -105,15 +108,14 @@ def apply_masking(formatted_line, logSize):
                             adjust_length += (end - start) - len(masking_config[config]['string'])
                             field_value = field_value[:start] + masking_config[config]['string'] + field_value[end:]
         formatted_line[config] = field_value
-        if logSize != None:
-            log_size -= adjust_length
+        log_size -= adjust_length
 
 
-def apply_hashing(formatted_line, logSize):
+def apply_hashing(formatted_line):
     global log_size
     for config in hashing_config:
         adjust_length = 0
-        mask_regex = re.compile(hashing_config[config]['regex'])
+        mask_regex = hashing_config[config]['regex']
         field_value = str(formatted_line[config])
         for matcher in re.finditer(mask_regex, field_value):
             if matcher:
@@ -129,11 +131,10 @@ def apply_hashing(formatted_line, logSize):
                             adjust_length += (end - start) - len(hash_string)
                             field_value = field_value[:start] + hash_string + field_value[end:]
         formatted_line[config] = field_value
-        if logSize != None:
-            log_size -= adjust_length
+        log_size -= adjust_length
 
 
-def derivedFields(formatted_line, logSize):
+def derivedFields(formatted_line):
     global log_size
     for items in derived_fields:
         for each in derived_fields[items]:
@@ -141,9 +142,8 @@ def derivedFields(formatted_line, logSize):
             if match_derived:
                 match_derived_field = match_derived.groupdict(default='-')
                 formatted_line.update(match_derived_field)
-                if logSize != None:
-                    for field_name in match_derived_field:
-                        log_size += len(formatted_line[field_name])
+                for field_name in match_derived_field:
+                    log_size += len(formatted_line[field_name])
                 break
 
 
@@ -186,6 +186,14 @@ def main(eventMessages: func.EventHubEvent):
                             derived_fields[key].append(re.compile(values.replace('\\\\', '\\').replace('?<', '?P<')))
                 except Exception as e:
                     print("Error in dfields")
+            if masking_config:
+                for key in masking_config:
+                    masking_config[key]["regex"] = re.compile(masking_config[key]["regex"])
+
+            if hashing_config:
+                for key in hashing_config:
+                    hashing_config[key]["regex"] = re.compile(hashing_config[key]["regex"])
+                    
             if 'jsonPath' in logtype_config:
                 parsed_lines, log_size = json_log_parser(log_events)
 
