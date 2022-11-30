@@ -18,7 +18,11 @@ def get_timestamp(datetime_string):
 def is_filters_matched(formatted_line):
     if 'filterConfig' in logtype_config:
         for config in logtype_config['filterConfig']:
-            if config in formatted_line and (logtype_config['filterConfig'][config]['match'] ^ (formatted_line[config] in logtype_config['filterConfig'][config]['values'])):
+            if re.findall(logtype_config['filterConfig'][config]['values'],formatted_line[config]) :
+                val = True 
+            else:
+                val = False
+            if config in formatted_line and (logtype_config['filterConfig'][config]['match'] ^ (val)):
                 return False
     return True
 
@@ -193,6 +197,13 @@ def main(eventMessages: func.EventHubEvent):
             if hashing_config:
                 for key in hashing_config:
                     hashing_config[key]["regex"] = re.compile(hashing_config[key]["regex"])
+            
+            if "filterConfig" in logtype_config:
+                for field in logtype_config['filterConfig']:
+                    temp = []
+                    for value in logtype_config['filterConfig'][field]['values']:
+                        temp.append(re.compile(value))
+                    logtype_config['filterConfig'][field]['values'] = '|'.join(x.pattern for x in temp)
                     
             if 'jsonPath' in logtype_config:
                 parsed_lines, log_size = json_log_parser(log_events)
