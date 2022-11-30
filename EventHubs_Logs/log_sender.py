@@ -26,7 +26,7 @@ def is_filters_matched(formatted_line):
                 return False
     return True
 
-def log_line_filter():
+def log_line_filter(formatted_line):
     if masking_config:
         apply_masking(formatted_line)
     if hashing_config:
