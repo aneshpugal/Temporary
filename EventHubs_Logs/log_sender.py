@@ -222,7 +222,7 @@ def main(eventMessages: func.EventHubEvent):
 
             if parsed_lines:
                 gzipped_parsed_lines = gzip.compress(json.dumps(parsed_lines).encode())
-                print("Logsize : %s",log_size)
+                print("Logsize : ",log_size)
                 send_logs_to_s247(gzipped_parsed_lines, log_size)
     except Exception as e:
         traceback.print_exc()
