@@ -99,7 +99,7 @@ def apply_masking(formatted_line):
         for config in masking_config:
             adjust_length = 0
             mask_regex = masking_config[config]['regex']
-            if config in fomratted_line:
+            if config in formatted_line:
                 field_value = str(formatted_line[config])
                 for matcher in re.finditer(mask_regex, field_value):
                     if matcher:
@@ -126,7 +126,7 @@ def apply_hashing(formatted_line):
             adjust_length = 0
             mask_regex = hashing_config[config]['regex']
             field_value = str(formatted_line[config])
-            if config in fomratted_line:
+            if config in formatted_line:
                 for matcher in re.finditer(mask_regex, field_value):
                     if matcher:
                         for i in range(mask_regex.groups):
