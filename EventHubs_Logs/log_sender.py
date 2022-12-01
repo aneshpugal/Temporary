@@ -95,60 +95,72 @@ def send_logs_to_s247(gzipped_parsed_lines, log_size):
 
 def apply_masking(formatted_line):
     global log_size
-    for config in masking_config:
-        adjust_length = 0
-        mask_regex = masking_config[config]['regex']
-        field_value = str(formatted_line[config])
-        for matcher in re.finditer(mask_regex, field_value):
-            if matcher:
-                for i in range(mask_regex.groups):
-                    matched_value = matcher.group(i + 1)
-                    if matched_value:
-                        start = matcher.start(i + 1)
-                        end = matcher.end(i + 1)
-                        if start >= 0 and end > 0:
-                            start = start - adjust_length
-                            end = end - adjust_length
-                            adjust_length += (end - start) - len(masking_config[config]['string'])
-                            field_value = field_value[:start] + masking_config[config]['string'] + field_value[end:]
-        formatted_line[config] = field_value
-        log_size -= adjust_length
+    try:
+        for config in masking_config:
+            adjust_length = 0
+            mask_regex = masking_config[config]['regex']
+            if config in fomratted_line:
+                field_value = str(formatted_line[config])
+                for matcher in re.finditer(mask_regex, field_value):
+                    if matcher:
+                        for i in range(mask_regex.groups):
+                            matched_value = matcher.group(i + 1)
+                            if matched_value:
+                                start = matcher.start(i + 1)
+                                end = matcher.end(i + 1)
+                                if start >= 0 and end > 0:
+                                    start = start - adjust_length
+                                    end = end - adjust_length
+                                    adjust_length += (end - start) - len(masking_config[config]['string'])
+                                    field_value = field_value[:start] + masking_config[config]['string'] + field_value[end:]
+                formatted_line[config] = field_value
+                log_size -= adjust_length
+    except Exception as e:
+        traceback.print_exc()
 
 
 def apply_hashing(formatted_line):
     global log_size
-    for config in hashing_config:
-        adjust_length = 0
-        mask_regex = hashing_config[config]['regex']
-        field_value = str(formatted_line[config])
-        for matcher in re.finditer(mask_regex, field_value):
-            if matcher:
-                for i in range(mask_regex.groups):
-                    matched_value = matcher.group(i + 1)
-                    if matched_value:
-                        start = matcher.start(i + 1)
-                        end = matcher.end(i + 1)
-                        if start >= 0 and end > 0:
-                            start = start - adjust_length
-                            end = end - adjust_length
-                            hash_string = hashlib.md5(matched_value.encode('utf-8')).hexdigest()
-                            adjust_length += (end - start) - len(hash_string)
-                            field_value = field_value[:start] + hash_string + field_value[end:]
-        formatted_line[config] = field_value
-        log_size -= adjust_length
+    try:
+        for config in hashing_config:
+            adjust_length = 0
+            mask_regex = hashing_config[config]['regex']
+            field_value = str(formatted_line[config])
+            if config in fomratted_line:
+                for matcher in re.finditer(mask_regex, field_value):
+                    if matcher:
+                        for i in range(mask_regex.groups):
+                            matched_value = matcher.group(i + 1)
+                            if matched_value:
+                                start = matcher.start(i + 1)
+                                end = matcher.end(i + 1)
+                                if start >= 0 and end > 0:
+                                    start = start - adjust_length
+                                    end = end - adjust_length
+                                    hash_string = hashlib.sha256(matched_value.encode('utf-8')).hexdigest()
+                                    adjust_length += (end - start) - len(hash_string)
+                                    field_value = field_value[:start] + hash_string + field_value[end:]
+                formatted_line[config] = field_value
+                log_size -= adjust_length
+    except Exception as e:
+        traceback.print_exc()
 
 
 def derivedFields(formatted_line):
     global log_size
-    for items in derived_fields:
-        for each in derived_fields[items]:
-            match_derived = each.search(formatted_line[items])
-            if match_derived:
-                match_derived_field = match_derived.groupdict(default='-')
-                formatted_line.update(match_derived_field)
-                for field_name in match_derived_field:
-                    log_size += len(formatted_line[field_name])
-                break
+    try:
+        for items in derived_fields:
+            for each in derived_fields[items]:
+                if items in formatted_line:
+                    match_derived = each.search(formatted_line[items])
+                    if match_derived:
+                        match_derived_field = match_derived.groupdict(default='-')
+                        formatted_line.update(match_derived_field)
+                        for field_name in match_derived_field:
+                            log_size += len(formatted_line[field_name])
+                        break
+    except Exception as e:
+        traceback.print_exc()
 
 
 def main(eventMessages: func.EventHubEvent):
