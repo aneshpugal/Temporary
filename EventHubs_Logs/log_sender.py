@@ -1,4 +1,3 @@
-
 import sys, os, re, gzip, json, urllib.parse, urllib.request, traceback, datetime, calendar, logging, hashlib, ast
 import azure.functions as func
 from base64 import b64decode
@@ -61,13 +60,15 @@ def json_log_parser(lines_read):
     for event_obj in lines_read:
         try:
             formatted_line = {}
+            json_log_size = 0
             for path_obj in logtype_config['jsonPath']:
                 value = get_json_value(event_obj, path_obj['key' if 'key' in path_obj else 'name'], path_obj['type'] if 'type' in path_obj else None)
                 if value:
                     formatted_line[path_obj['name']] = value
-                    log_size+= len(str(value))
+                    json_log_size+= len(str(value))
             if not is_filters_matched(formatted_line):
                 continue
+            log_size += json_log_size
             formatted_line['_zl_timestamp'] = get_timestamp(event_obj[logtype_config['dateField']])
             if 'resourceId' in event_obj:
                 formatted_line['s247agentuid'] = event_obj['resourceId'].split('/')[4]
@@ -222,10 +223,7 @@ def main(eventMessages: func.EventHubEvent):
 
             if parsed_lines:
                 gzipped_parsed_lines = gzip.compress(json.dumps(parsed_lines).encode())
-                print("Logsize : ",log_size)
                 send_logs_to_s247(gzipped_parsed_lines, log_size)
     except Exception as e:
         traceback.print_exc()
         raise e
-
-       
