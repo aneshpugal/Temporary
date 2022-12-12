@@ -181,9 +181,12 @@ def main(eventMessages: func.EventHubEvent):
                 log_category = (log_events[0]['category' if 'category' in log_events[0] else 'Category']).replace('-', '_')
                 print("log_category" + " : "+ log_category)
                 log_category = 'S247_'+log_category
-            else:
-                print("Events:",log_events[0])
-                print("Type:")
+
+            elif 'Identifier' in os.environ:
+                for each in os.environ['Identifier'].split(","):
+                    if each in log_events[0]:
+                        log_category = 'S247_'+log_events[0][each]
+                        break
                       
             if log_category in os.environ:
                 print("log_category found in input arguments")
