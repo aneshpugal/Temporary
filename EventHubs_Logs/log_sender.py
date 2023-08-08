@@ -1,4 +1,3 @@
-
 import sys, os, re, gzip, json, urllib.parse, urllib.request, traceback, datetime, calendar, logging, hashlib, ast
 import azure.functions as func
 from base64 import b64decode
@@ -18,12 +17,14 @@ def get_timestamp(datetime_string):
 def is_filters_matched(formatted_line):
     if 'filterConfig' in logtype_config:
         for config in logtype_config['filterConfig']:
-            if re.findall(logtype_config['filterConfig'][config]['values'],formatted_line[config]) :
-                val = True 
-            else:
-                val = False
-            if config in formatted_line and (logtype_config['filterConfig'][config]['match'] ^ (val)):
-                return False
+            if config in formatted_line:
+                if re.findall(logtype_config['filterConfig'][config]['values'], formatted_line[config]):
+                    val = True
+                else:
+                    val = False
+
+                if (logtype_config['filterConfig'][config]['match'] ^ (val)):
+                    return False
     return True
 
 def log_line_filter(formatted_line):
@@ -61,6 +62,10 @@ def json_log_parser(lines_read):
     parsed_lines = []
     for event_obj in lines_read:
         try:
+            try:
+                event_obj = json.loads(event_obj)
+            except Exception:
+                event_obj = ast.literal_eval(event_obj)
             formatted_line = {}
             json_log_size = 0
             for path_obj in logtype_config['jsonPath']:
@@ -182,13 +187,13 @@ def main(eventMessages: func.EventHubEvent):
                 log_category = (log_events[0]['category' if 'category' in log_events[0] else 'Category']).replace('-', '_')
                 print("log_category" + " : "+ log_category)
                 log_category = 'S247_'+log_category
-            
+
             elif 'Identifier' in os.environ:
                 for each in os.environ['Identifier'].split(","):
                     if each in log_events[0]:
                         log_category = 'S247_'+log_events[0][each]
                         break
-
+                      
             if log_category in os.environ:
                 print("log_category found in input arguments")
                 logtype_config = json.loads(b64decode(os.environ[log_category]).decode('utf-8'))
